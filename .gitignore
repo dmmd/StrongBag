@@ -1,3 +1,4 @@
 target/
 StrongBag.iml
 .idea/
+.strongbag_keystore

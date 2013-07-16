@@ -9,11 +9,12 @@ to install:
 3. cd target
 
 <b>to create a strongbag</b><br />
-java -jar java -jar StrongBag-0.1-SNAPSHOT-jar-with-dependencies.jar -create <baglocation> <source directory>
+java -jar java -jar StrongBag-0.1-SNAPSHOT-jar-with-dependencies.jar -create [bag location] [source directories]
 
 <b>to verify a strongbag</b><br />
-java -jar java -jar StrongBag-0.1-SNAPSHOT-jar-with-dependencies.jar -verifyvalid <baglocation>
+java -jar java -jar StrongBag-0.1-SNAPSHOT-jar-with-dependencies.jar -verifyvalid [bag location]
 
+<br />
 notes:
 ______
 1. i lack the mvn-fu to move the application.conf file into the target directory (maybe this should be configurable via the command line?)<br />

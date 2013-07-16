@@ -1,6 +1,6 @@
 STRONGBAG
 =========
-a cryptographically strengthened baagit clone
+a cryptographically strengthened bagit clone
 
 to install:
 

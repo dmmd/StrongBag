@@ -23,13 +23,11 @@ public class KeystoreManager {
         conf = ConfigFactory.parseFile(new File("application.conf"));
         if(!rsaExists()){
             createRsaStore();
-            System.out.println("The Password entered is: " + passphrase);
-            System.out.println("You should keep the password somewhere safe, it is not recoverable");
         }
 
         rsakey = KeyStore.getInstance("JKS");
+        System.out.println("Accessing keystore");
         passphrase = requestPassword();
-
         File store = new File(conf.getString("homedir.home"), conf.getString("rsa.store_name"));
         rsakey.load(new FileInputStream(store), passphrase.toCharArray());
     }
@@ -52,7 +50,7 @@ public class KeystoreManager {
     }
 
     private void createRsaStore() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, InvalidKeyException, NoSuchProviderException, SignatureException {
-
+        System.out.println("Creating new RSA keystore");
         String pass = requestPassword();
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(conf.getInt("rsa.key_length"));
@@ -67,6 +65,8 @@ public class KeystoreManager {
         ks.load(null,null);
         ks.setKeyEntry(conf.getString("rsa.alias"), key, pass.toCharArray(), chain);
         ks.store(new FileOutputStream(store), pass.toCharArray());
+        System.out.println("The Password entered is: " + pass);
+        System.out.println("You should keep the password somewhere safe, it is not recoverable");
     }
 
     private X509Certificate generateCertificate(KeyPair keyPair) throws NoSuchAlgorithmException, CertificateEncodingException, NoSuchProviderException, InvalidKeyException, SignatureException {

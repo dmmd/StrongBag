@@ -12,43 +12,63 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 
 public class Create {
     private String rootName;
-    private int offset;
+    private String offset;
     private File bag, data, root, manifest, baginfo, bagTxt, tagManifest;
-    private List<File> payload = new ArrayList();
-    private int oxum_count =0;
-    private int oxum_sum = 0;
+    private ArrayList<File> files;
+    private Map<File, String> payload = new TreeMap();
+    private long oxum_count =0;
+    private long oxum_sum = 0;
     private final String version = "0.01";
 
-    Create(File root, File bag) throws IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
-        rootName = root.getName();
+    Create(ArrayList<File> files, File bag) throws IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
+        this.files = files;
         this.bag = bag;
         bag.mkdir();
         data = new File(this.bag, "data");
         data.mkdir();
-        this.root = new File(data, rootName);
-        this.root.mkdir();
-        offset = root.getParentFile().getAbsolutePath().length();
+        process();
+        writeFiles();
+    }
+    private void process() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, IOException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
+        for(File file: files){
 
+            if(file.isFile()){
+                payload.put(file, file.getName());
+            }
+            else if(file.isDirectory()){
+                rootName = file.getName();
+                root = new File(data, rootName);
+                root.mkdir();
+                String currentDir = file.getName();
+                walk(file, currentDir);
+            }
 
-        walk(root);
+        }
+    }
+
+    private void writeFiles() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, IOException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
+        System.out.println(payload.size() + " files in payload");
         createManifest();
         createBagInfo();
         createBagText();
         createTagManifest();
-
     }
 
-    private void walk(File fileIn){
+    private void walk(File fileIn, String offset){
+
         if(fileIn.isFile()){
-            payload.add(fileIn);
+            payload.put(fileIn, new File(offset, fileIn.getName()).toString());
+
         }
         if(fileIn.isDirectory()){
             for(File child: fileIn.listFiles()){
-                walk(child);
+                walk(child, offset);
             }
         }
     }
@@ -58,46 +78,39 @@ public class Create {
         manifest.createNewFile();
         FileWriter manifestWriter = new FileWriter(manifest);
         RSASig rsaSig = new RSASig();
-        for(File file: payload){
+        for(Map.Entry e : payload.entrySet()){
+            File currentFile = (File) e.getKey();
+            String targetPath = e.getValue().toString();
             oxum_count++;
-            oxum_sum += file.length();
-            buildDir(file);
-            File copyFile = new File(root, file.getAbsolutePath().substring(offset + rootName.length() + 2));
+            oxum_sum += currentFile.length();
+            String[] path = targetPath.split("\\/");
+            if(path.length > 1){
+                buildDir(path);
+            }
+            File copyFile = new File(data, targetPath);
             copyFile.createNewFile();
-            FileOutputStream fileWriter = new FileOutputStream(copyFile);
-            InputStream is = new FileInputStream(file);
+            OutputStream os = new FileOutputStream(copyFile);
+            InputStream is = new FileInputStream(currentFile);
             byte[] buffer = new byte[1024];
             while(true){
                 int bytes = is.read(buffer);
-                if(bytes < 0){break;}
-                fileWriter.write(buffer, 0, bytes);
+                if(bytes < 0) break;
+                os.write(buffer, 0, bytes);
+                os.flush();
             }
-            fileWriter.close();
             is.close();
-
-            manifestWriter.write(rsaSig.getSignature(copyFile, "SHA256withRSA") +" data" + file.getAbsolutePath().substring(offset) + "\n");
+            os.close();
+            manifestWriter.write(rsaSig.getSignature(copyFile, "SHA256withRSA") +" data/" + targetPath + "\n");
         }
         manifestWriter.close();
+
     }
 
-    private void buildDir(File file) throws IOException {
-            ArrayList<String> dirs = new ArrayList();
-            while(true){
-                if(file.getParentFile().getName().equals(rootName)){
-                    break;
-                }
-                file = file.getParentFile();
-                dirs.add(file.getName());
-            }
-
-            String[] dirArray = dirs.toArray(new String[dirs.size()]);
-
-            for(int i = dirArray.length - 1; i >=0; i--){
-                File dir = new File(root, dirArray[i]);
-                if(!dir.exists()){
-                    dir.mkdir();
-                }
-            }
+    private void buildDir(String[] path) throws IOException {
+        for(int i = path.length -2; i >= 0; --i){
+            File f = new File(data, path[i]);
+            if(!f.exists()){f.mkdir();}
+        }
     }
 
     private void createBagInfo() throws IOException {

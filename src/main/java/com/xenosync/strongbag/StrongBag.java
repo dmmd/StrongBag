@@ -2,6 +2,7 @@ package com.xenosync.strongbag;
 
 import org.apache.commons.cli.*;
 import java.io.File;
+import java.util.ArrayList;
 
 public class StrongBag {
 
@@ -18,8 +19,11 @@ public class StrongBag {
         }
 
         if(cmd.hasOption("create")){
-            File source = new File(cmd.getArgList().get(0).toString());
-            Create create = new Create(source, new File(cmd.getOptionValue("create")));
+            ArrayList<File> sources = new ArrayList();
+            for(Object obj: cmd.getArgList()){
+                sources.add(new File((obj.toString())));
+            }
+            Create create = new Create(sources, new File(cmd.getOptionValue("create")));
         } else if(cmd.hasOption("verifyvalid")){
             File bag = new File(cmd.getOptionValue("verifyvalid"));
             VerifyValid vv = new VerifyValid(bag);
@@ -32,7 +36,12 @@ public class StrongBag {
         options.addOption("verifyvalid", true, "verify strongbag at supplied path");
     }
     public static void main(String[] args) throws Exception{
-        //String[] args2 = {"-verifyvalid", "/Users/dm/Desktop/my_strongbag"};
-        StrongBag sb = new StrongBag(args);
+        String strongBagLoc = "src/test/resources/my_strongbag";
+        String[] args2 = {"-create", strongBagLoc, "src/test/resources/er1",  "src/test/resources/sbt.tgz"};
+        String[] args3 = {"-verifyvalid", strongBagLoc};
+        System.out.println("Creating new strongbag");
+        new StrongBag(args2);
+        System.out.println("Verifying strongbag");
+        new StrongBag(args3);
     }
 }

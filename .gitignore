@@ -1,4 +1,5 @@
 target/
 StrongBag.iml
 .idea/
-.strongbag_keystore
+.strongbag_rsa.jks
+src/test/resources/nypl

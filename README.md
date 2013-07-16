@@ -1,5 +1,6 @@
 STRONGBAG
 =========
+a cryptographically strengthened baagit clone
 
 to install:
 
@@ -7,14 +8,14 @@ to install:
 2. mv application.conf target
 3. cd target
 
-to create a strongbag<br />
-java -jar java -jar StrongBag-1.0-SNAPSHOT-jar-with-dependencies.jar -create <baglocation> <source directory>
+<b>to create a strongbag<b><br />
+java -jar java -jar StrongBag-0.1-SNAPSHOT-jar-with-dependencies.jar -create <baglocation> <source directory>
 
-to verify a strongbag<br />
-java -jar java -jar StrongBag-1.0-SNAPSHOT-jar-with-dependencies.jar -verifyvalid <baglocation>
+<b>to verify a strongbag<b><br />
+java -jar java -jar StrongBag-0.1-SNAPSHOT-jar-with-dependencies.jar -verifyvalid <baglocation>
 
 notes:
 ______
-a. at present strong bag can only bag a single directory.<br>
-b. i lack the mvn-fu to move the application.conf file into the target directory (maybe this should be configurable via the command line?)<br />
-c. there is no zip writer/reader, but rest assured it will be added soon and encrypted
+1. i lack the mvn-fu to move the application.conf file into the target directory (maybe this should be configurable via the command line?)<br />
+2. there is no zip writer/reader, but the application will support multiple compression formats
+3. encryption of the entire bag, the files in the bag, and both will be supported

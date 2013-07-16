@@ -8,10 +8,10 @@ to install:
 2. mv application.conf target
 3. cd target
 
-<b>to create a strongbag<b><br />
+<b>to create a strongbag</b><br />
 java -jar java -jar StrongBag-0.1-SNAPSHOT-jar-with-dependencies.jar -create <baglocation> <source directory>
 
-<b>to verify a strongbag<b><br />
+<b>to verify a strongbag</b><br />
 java -jar java -jar StrongBag-0.1-SNAPSHOT-jar-with-dependencies.jar -verifyvalid <baglocation>
 
 notes:

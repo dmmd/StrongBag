@@ -36,12 +36,6 @@ public class StrongBag {
         options.addOption("verifyvalid", true, "verify strongbag at supplied path");
     }
     public static void main(String[] args) throws Exception{
-        String strongBagLoc = "src/test/resources/my_strongbag";
-        String[] args2 = {"-create", strongBagLoc, "src/test/resources/er1",  "src/test/resources/sbt.tgz"};
-        String[] args3 = {"-verifyvalid", strongBagLoc};
-        System.out.println("Creating new strongbag");
-        new StrongBag(args2);
-        System.out.println("Verifying strongbag");
-        new StrongBag(args3);
+        new StrongBag(args);
     }
 }

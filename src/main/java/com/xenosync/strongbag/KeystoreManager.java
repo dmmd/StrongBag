@@ -103,13 +103,18 @@ public class KeystoreManager {
     }
 
     public void writeKey(SecretKey key, String alias) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
-        if(!aesExists()){
-            createAesStore();
-        }
-
         File store = new File(conf.getString("homedir.home"), conf.getString("aes.store_name"));
         KeyStore ks = KeyStore.getInstance("JCEKS");
-        ks.load(new FileInputStream(store), passphrase.toCharArray());
+
+        if(!aesExists()){
+            createAesStore();
+            ks.load(null, null);
+        } else {
+            ks.load(new FileInputStream(store), passphrase.toCharArray());
+        }
+
+
+
         ks.setKeyEntry(alias, key.getEncoded(), null);
         ks.store(new FileOutputStream(store), passphrase.toCharArray());
     }

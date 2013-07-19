@@ -13,23 +13,21 @@ import org.bouncycastle.jce.X509Principal;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.joda.time.DateTime;
 
+import javax.crypto.SecretKey;
+
 public class KeystoreManager {
     private KeyStore rsakey;
     private Config conf;
     private String passphrase;
 
-    KeystoreManager() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException, IOException {
+    KeystoreManager() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         conf = ConfigFactory.parseFile(new File("application.conf"));
+        passphrase = requestPassword();
+
         if(!rsaExists()){
             createRsaStore();
         }
-
-        rsakey = KeyStore.getInstance("JKS");
-        System.out.println("Accessing keystore");
-        passphrase = requestPassword();
-        File store = new File(conf.getString("homedir.home"), conf.getString("rsa.store_name"));
-        rsakey.load(new FileInputStream(store), passphrase.toCharArray());
     }
 
     public PrivateKey getPrivateKey() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
@@ -41,6 +39,9 @@ public class KeystoreManager {
     }
 
     public KeyPair getKeypair() throws KeyStoreException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, IOException {
+        rsakey = KeyStore.getInstance("JKS");
+        File store = new File(conf.getString("homedir.home"), conf.getString("rsa.store_name"));
+        rsakey.load(new FileInputStream(store), passphrase.toCharArray());
         return new KeyPair(getCertificate().getPublicKey(), getPrivateKey());
     }
 
@@ -49,9 +50,13 @@ public class KeystoreManager {
         return f.exists();
     }
 
+    private boolean aesExists(){
+        File f = new File(conf.getString("homedir.home"), conf.getString("aes.store_name"));
+        return f.exists();
+    }
+
     private void createRsaStore() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, InvalidKeyException, NoSuchProviderException, SignatureException {
         System.out.println("Creating new RSA keystore");
-        String pass = requestPassword();
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(conf.getInt("rsa.key_length"));
         KeyPair pair = gen.genKeyPair();
@@ -63,10 +68,16 @@ public class KeystoreManager {
         store.createNewFile();
         KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(null,null);
-        ks.setKeyEntry(conf.getString("rsa.alias"), key, pass.toCharArray(), chain);
-        ks.store(new FileOutputStream(store), pass.toCharArray());
-        System.out.println("The Password entered is: " + pass);
+        ks.setKeyEntry(conf.getString("rsa.alias"), key, passphrase.toCharArray(), chain);
+        ks.store(new FileOutputStream(store), passphrase.toCharArray());
+        System.out.println("The Password entered is: " + passphrase);
         System.out.println("You should keep the password somewhere safe, it is not recoverable");
+    }
+
+    private void createAesStore() throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        System.out.println("Creating new AES keystore");
+        File store = new File(conf.getString("homedir.home"), conf.getString("aes.store_name"));
+        store.createNewFile();
     }
 
     private X509Certificate generateCertificate(KeyPair keyPair) throws NoSuchAlgorithmException, CertificateEncodingException, NoSuchProviderException, InvalidKeyException, SignatureException {
@@ -89,5 +100,17 @@ public class KeystoreManager {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         String pass = br.readLine();
         return pass;
+    }
+
+    public void writeKey(SecretKey key, String alias) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        if(!aesExists()){
+            createAesStore();
+        }
+
+        File store = new File(conf.getString("homedir.home"), conf.getString("aes.store_name"));
+        KeyStore ks = KeyStore.getInstance("JCEKS");
+        ks.load(new FileInputStream(store), passphrase.toCharArray());
+        ks.setKeyEntry(alias, key.getEncoded(), null);
+        ks.store(new FileOutputStream(store), passphrase.toCharArray());
     }
 }

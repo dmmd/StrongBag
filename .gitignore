@@ -1,5 +1,6 @@
 target/
 StrongBag.iml
 .idea/
-.strongbag_rsa.jks
-src/test/resources/nypl
+strongbag_rsa.jks
+strongbag_aes.jceks
+src/test/resources/bag

@@ -1,6 +1,8 @@
 STRONGBAG
 =========
-a cryptographically strengthened bagit clone
+a cryptographically strengthened bagit clone.
+
+Description: Currently Strongbag is a utility to create bagit-like packages that creates SHA256withRSA digital signatures for any file placed in a (strong)bag. The application, at present, can creates a keystore and generates a 2048 byte RSA keypair, with alias 'rsa', that is used for signing and verify files in the strongbag. Strongbag uses the same passphrase (which the user enters) for both the keystore and the alias.  
 
 to install:
 
@@ -19,4 +21,4 @@ notes:
 ______
 1. i lack the mvn-fu to move the application.conf file into the target directory (maybe this should be configurable via the command line?)<br />
 2. there is no zip writer/reader, but the application will support multiple compression formats
-3. encryption of the entire bag, the files in the bag, and both will be supported
+3. encryption of the entire bag, the files in the bag, and both will be supported, just not yet

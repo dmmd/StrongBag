@@ -7,17 +7,21 @@ import java.security.cert.CertificateException;
 
 public class VerifyValid {
     private File bag;
-    private RSASig rsaSig;
+    //private RSASig rsaSig;
+    private KeyPair keyPair;
     private long oxum_count = 0;
     private long oxum_size = 1;
+    private KeystoreManager ksm;
 
     VerifyValid(File bag) throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
+        System.out.println("Validating StrongBag: " + bag.getName());
+        ksm = new KeystoreManager();
+        keyPair = ksm.getKeypair();
         this.bag = bag;
-        rsaSig = new RSASig();
         parseManifest();
     }
 
-    private void parseManifest() throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException {
+    private void parseManifest() throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException, UnrecoverableKeyException, KeyStoreException, CertificateException {
         File manifest = new File(bag, "manifest-sha256rsa.txt");
         if(!manifest.exists()){
             System.err.println("manifest can not be located");
@@ -48,9 +52,23 @@ public class VerifyValid {
         }
     }
 
-    private boolean verifyValid(String path, String sig) throws NoSuchAlgorithmException, SignatureException, NoSuchProviderException, InvalidKeyException, IOException {
+    private boolean verifyValid(String path, String sig) throws NoSuchAlgorithmException, SignatureException, NoSuchProviderException, InvalidKeyException, IOException, UnrecoverableKeyException, KeyStoreException, CertificateException {
         File file = new File(bag, path);
-        byte[] signature = Base64.decodeBase64(sig);
-        return rsaSig.validateSignature(signature, file, "SHA256withRSA");
+        byte[] signatureBytes = Base64.decodeBase64(sig);
+
+        PublicKey key = keyPair.getPublic();
+        Signature signature = Signature.getInstance("SHA256withRSA", "BC");
+        signature.initVerify(key);
+        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+
+        byte[] buffer = new byte[1024];
+        int len;
+        while (bis.available() != 0) {
+            len = bis.read(buffer);
+            signature.update(buffer, 0, len);
+        };
+
+        bis.close();
+        return signature.verify(signatureBytes);
     }
 }

@@ -1,5 +1,6 @@
 package com.xenosync.strongbag;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -8,16 +9,13 @@ import org.joda.time.format.DateTimeFormatter;
 import java.io.*;
 
 import java.security.*;
-
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-
 public class Create {
-    private String rootName;
+    private String rootName, alias;
     private String offset;
     private File bag, data, root, manifest, baginfo, bagTxt, tagManifest;
     private ArrayList<File> files;
@@ -25,16 +23,23 @@ public class Create {
     private long oxum_count =0;
     private long oxum_sum = 0;
     private final String version = "0.01";
+    private KeystoreManager ksm;
+    private boolean encrypt;
 
-    Create(ArrayList<File> files, File bag) throws IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
+    Create(ArrayList<File> files, File bag, boolean encrypt) throws IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
+        System.out.println("Creating StrongBag");
+        ksm = new KeystoreManager();
         this.files = files;
         this.bag = bag;
+        this.encrypt = encrypt;
         bag.mkdir();
         data = new File(this.bag, "data");
         data.mkdir();
         process();
+        alias = new Encryption().generateKey(ksm);
         writeFiles();
     }
+
     private void process() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, IOException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
         for(File file: files){
 
@@ -61,7 +66,6 @@ public class Create {
     }
 
     private void walk(File fileIn, String offset){
-
         if(fileIn.isFile()){
             payload.put(fileIn, new File(offset, fileIn.getName()).toString());
 
@@ -77,7 +81,7 @@ public class Create {
         manifest = new File(bag, "manifest-sha256rsa.txt");
         manifest.createNewFile();
         FileWriter manifestWriter = new FileWriter(manifest);
-        RSASig rsaSig = new RSASig();
+        KeyPair keyPair = ksm.getKeypair();
         for(Map.Entry e : payload.entrySet()){
             File currentFile = (File) e.getKey();
             String targetPath = e.getValue().toString();
@@ -92,15 +96,22 @@ public class Create {
             OutputStream os = new FileOutputStream(copyFile);
             InputStream is = new FileInputStream(currentFile);
             byte[] buffer = new byte[1024];
+            Signature rsa = Signature.getInstance("SHA256withRSA", "BC");
+            rsa.initSign(keyPair.getPrivate());
+
             while(true){
                 int bytes = is.read(buffer);
                 if(bytes < 0) break;
+                rsa.update(buffer, 0, bytes);
                 os.write(buffer, 0, bytes);
                 os.flush();
             }
+
+
             is.close();
             os.close();
-            manifestWriter.write(rsaSig.getSignature(copyFile, "SHA256withRSA") +" data/" + targetPath + "\n");
+
+            manifestWriter.write(new String(Base64.encodeBase64(rsa.sign())) +" data/" + targetPath + "\n");
         }
         manifestWriter.close();
 
@@ -122,7 +133,8 @@ public class Create {
         DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd");
         fw.write("Payload-Oxum: " + oxum_sum + "." + oxum_count +"\n");
         fw.write("Bagging-Date: " + fmt.print(dt) + "\n");
-        fw.write("Bag-Size: " + (double) Math.round((oxum_sum / 1024.0) / 1024.0 * 10) / 10 + " MB");
+        fw.write("Bag-Size: " + (double) Math.round((oxum_sum / 1024.0) / 1024.0 * 10) / 10 + " MB\n");
+        if(encrypt == true) fw.write("key-alias: " + alias);
         fw.flush();
         fw.close();
     }
@@ -156,4 +168,5 @@ public class Create {
         }
         os.close();
     }
+
 }

@@ -118,4 +118,8 @@ public class KeystoreManager {
         ks.setKeyEntry(alias, key.getEncoded(), null);
         ks.store(new FileOutputStream(store), passphrase.toCharArray());
     }
+
+    public String getPassphrase(){
+        return passphrase;
+    }
 }

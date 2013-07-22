@@ -6,6 +6,8 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import javax.crypto.CipherInputStream;
+import javax.crypto.SecretKey;
 import java.io.*;
 
 import java.security.*;
@@ -95,6 +97,7 @@ public class Create {
             copyFile.createNewFile();
             OutputStream os = new FileOutputStream(copyFile);
             InputStream is = new FileInputStream(currentFile);
+
             byte[] buffer = new byte[1024];
             Signature rsa = Signature.getInstance("SHA256withRSA", "BC");
             rsa.initSign(keyPair.getPrivate());

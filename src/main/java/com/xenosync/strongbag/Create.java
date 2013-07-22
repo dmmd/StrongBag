@@ -6,12 +6,12 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import javax.crypto.CipherInputStream;
-import javax.crypto.SecretKey;
+import javax.crypto.*;
 import java.io.*;
 
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
@@ -28,7 +28,7 @@ public class Create {
     private KeystoreManager ksm;
     private boolean encrypt;
 
-    Create(ArrayList<File> files, File bag, boolean encrypt) throws IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
+    Create(ArrayList<File> files, File bag, boolean encrypt) throws IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException, NoSuchPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
         System.out.println("Creating StrongBag");
         ksm = new KeystoreManager();
         this.files = files;
@@ -38,7 +38,8 @@ public class Create {
         data = new File(this.bag, "data");
         data.mkdir();
         process();
-        alias = new Encryption().generateKey(ksm);
+        if(encrypt == true)
+            alias = ksm.generateKey();
         writeFiles();
     }
 
@@ -59,7 +60,7 @@ public class Create {
         }
     }
 
-    private void writeFiles() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, IOException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
+    private void writeFiles() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, IOException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException, NoSuchPaddingException, InvalidAlgorithmParameterException {
         System.out.println(payload.size() + " files in payload");
         createManifest();
         createBagInfo();
@@ -79,11 +80,21 @@ public class Create {
         }
     }
 
-    private void createManifest() throws IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException {
+    private void createManifest() throws IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException, NoSuchPaddingException, InvalidAlgorithmParameterException {
         manifest = new File(bag, "manifest-sha256rsa.txt");
         manifest.createNewFile();
         FileWriter manifestWriter = new FileWriter(manifest);
         KeyPair keyPair = ksm.getKeypair();
+        byte[] iv = null;
+        Cipher cipher = null;
+        if(encrypt == true){
+            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+
+            cipher.init(Cipher.ENCRYPT_MODE, ksm.getSecretKey(alias));
+            iv = cipher.getIV();
+
+        }
+
         for(Map.Entry e : payload.entrySet()){
             File currentFile = (File) e.getKey();
             String targetPath = e.getValue().toString();
@@ -102,12 +113,24 @@ public class Create {
             Signature rsa = Signature.getInstance("SHA256withRSA", "BC");
             rsa.initSign(keyPair.getPrivate());
 
+            CipherOutputStream cos = null;
+
+            if(encrypt == true){
+                os.write(iv);
+                os.flush();
+                cos = new CipherOutputStream(os, cipher);
+            }
+
             while(true){
                 int bytes = is.read(buffer);
                 if(bytes < 0) break;
                 rsa.update(buffer, 0, bytes);
-                os.write(buffer, 0, bytes);
-                os.flush();
+                if(encrypt == true){
+                    cos.write(buffer, 0, bytes);
+                } else {
+                    os.write(buffer, 0, bytes);
+                    os.flush();
+                }
             }
 
 
@@ -137,7 +160,8 @@ public class Create {
         fw.write("Payload-Oxum: " + oxum_sum + "." + oxum_count +"\n");
         fw.write("Bagging-Date: " + fmt.print(dt) + "\n");
         fw.write("Bag-Size: " + (double) Math.round((oxum_sum / 1024.0) / 1024.0 * 10) / 10 + " MB\n");
-        if(encrypt == true) fw.write("key-alias: " + alias);
+        if(encrypt == true)
+            fw.write("key-alias: " + alias);
         fw.flush();
         fw.close();
     }

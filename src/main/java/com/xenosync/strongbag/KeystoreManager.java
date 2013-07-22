@@ -6,17 +6,24 @@ import java.security.*;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
+import java.util.UUID;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.bouncycastle.jce.X509Principal;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.joda.time.DateTime;
 
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.SecretKeySpec;
 
 public class KeystoreManager {
     private KeyStore rsakey;
+    private KeyStore aeskey;
     private Config conf;
     private String passphrase;
 
@@ -102,7 +109,24 @@ public class KeystoreManager {
         return pass;
     }
 
-    public void writeKey(SecretKey key, String alias) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+    public SecretKey getSecretKey(String alias) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
+        aeskey = KeyStore.getInstance("JCEKS");
+        File store = new File(conf.getString("homedir.home"), conf.getString("aes.store_name"));
+        aeskey.load(new FileInputStream(store), passphrase.toCharArray());
+        return (SecretKey) aeskey.getKey(alias, passphrase.toCharArray());
+    }
+
+    public String getPassphrase(){
+        return passphrase;
+    }
+
+    public String generateKey() throws NoSuchProviderException, NoSuchAlgorithmException, CertificateException, SignatureException, KeyStoreException, InvalidKeyException, IOException, InvalidKeySpecException {
+
+        KeyGenerator kgen = KeyGenerator.getInstance("AES", "BC");
+        kgen.init(128);
+        SecretKey key = kgen.generateKey();
+
+        String alias = UUID.randomUUID().toString();
         File store = new File(conf.getString("homedir.home"), conf.getString("aes.store_name"));
         KeyStore ks = KeyStore.getInstance("JCEKS");
 
@@ -113,13 +137,8 @@ public class KeystoreManager {
             ks.load(new FileInputStream(store), passphrase.toCharArray());
         }
 
-
-
-        ks.setKeyEntry(alias, key.getEncoded(), null);
+        ks.setKeyEntry(alias, key, passphrase.toCharArray(), null);
         ks.store(new FileOutputStream(store), passphrase.toCharArray());
-    }
-
-    public String getPassphrase(){
-        return passphrase;
+        return alias;
     }
 }

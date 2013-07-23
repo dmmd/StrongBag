@@ -29,7 +29,11 @@ public class Create {
     private boolean encrypt;
 
     Create(ArrayList<File> files, File bag, boolean encrypt) throws IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException, KeyStoreException, SignatureException, NoSuchProviderException, InvalidKeyException, NoSuchPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
-        System.out.println("Creating StrongBag");
+        if(encrypt == false){
+            System.out.println("Creating StrongBag");
+        }   else {
+            System.out.println("Creating encrypted StrongBag");
+        }
         ksm = new KeystoreManager();
         this.files = files;
         this.bag = bag;

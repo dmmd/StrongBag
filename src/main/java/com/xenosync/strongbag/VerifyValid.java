@@ -45,7 +45,7 @@ public class VerifyValid {
             String sig = line.substring(0, line.indexOf(' '));
             String path = line.substring(line.indexOf(' ') +1);
 
-            if(encrypted == true){
+            if(encrypted == false){
                 if(!verifyExists(path) || !verifyValid(path, sig)){
                     System.err.println("Strongbag is not valid");
                     System.exit(1);
@@ -87,7 +87,6 @@ public class VerifyValid {
         while (bis.available() != 0) {
                 len = bis.read(buffer);
                 signature.update(buffer, 0, len);
-
         }
 
         bis.close();
@@ -101,7 +100,7 @@ public class VerifyValid {
         PublicKey key = keyPair.getPublic();
         Signature signature = Signature.getInstance("SHA256withRSA", "BC");
         signature.initVerify(key);
-        InputStream is = new FileInputStream(file);
+        InputStream is = new BufferedInputStream(new FileInputStream(file));
 
         byte[] iv = new byte[16];
         is.read(iv);
@@ -110,18 +109,15 @@ public class VerifyValid {
         cipher.init(Cipher.DECRYPT_MODE, ksm.getSecretKey(alias), new IvParameterSpec(iv));
         CipherInputStream cis = new CipherInputStream(is,cipher);
 
-
         byte[] buffer = new byte[1024];
-        ByteArrayOutputStream plainBytes = new ByteArrayOutputStream();
-
-        while(true){
-            int bytes = cis.read(buffer);
-            if(bytes < 0) break;
-            signature.update(buffer, 0, bytes);
+        int i;
+        while((i = cis.read(buffer)) > 0){
+            signature.update(buffer,0,i);
         }
 
-
-        return signature.verify(signatureBytes);
+        boolean result = signature.verify(signatureBytes);
+        System.out.println(result);
+        return result;
 
     }
 
@@ -135,8 +131,6 @@ public class VerifyValid {
             if(kv[0].equals("key-alias")){
                 alias = kv[1].trim();
                 encrypted = true;
-            } else {
-                encrypted = false;
             }
         }
     }

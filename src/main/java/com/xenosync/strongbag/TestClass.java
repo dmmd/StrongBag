@@ -9,7 +9,8 @@ public class TestClass {
         String[] args3 = {"-verifyvalid", "src/test/resources/bag"};
         String[] args4 = {"-create", "src/test/resources/bag", "-e", "src/test/resources/files", "src/test/resources/BagItSpec.pdf", "src/test/resources/solr.rb"};
 
-        //strongBag = new StrongBag(args4);
+        strongBag = new StrongBag(args2);
+        strongBag = new StrongBag(args3);
         strongBag = new StrongBag(args4);
         strongBag = new StrongBag(args3);
 

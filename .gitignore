@@ -3,4 +3,4 @@ StrongBag.iml
 .idea/
 strongbag_rsa.jks
 strongbag_aes.jceks
-src/test/resources/bag
+src/test/resources/bag/*
